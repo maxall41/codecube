@@ -12,11 +12,11 @@ import (
 
 	"time"
 
-	clip "github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/progress"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/charm/kv"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/wish"
 	bm "github.com/charmbracelet/wish/bubbletea"
@@ -102,6 +102,7 @@ type model struct {
 	textInput textinput.Model
 	savedId string
 	state string
+	pasteData string
 	progress progress.Model
 }
 
@@ -170,7 +171,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						log.Fatal(err)
 					}
 				} else {
-					clip.WriteAll(string(result))
+					m.pasteData = string(result)
 					m.state = "copied"
 				}
 			}
@@ -199,6 +200,13 @@ func (m model) View() string {
 
 	var dull = lipgloss.NewStyle().Foreground(lipgloss.Color("#878B7D"))
 
+	r, _ := glamour.NewTermRenderer(
+		// detect background color and pick either the default dark or light theme
+		glamour.WithAutoStyle(),
+		// wrap output at specific width
+		glamour.WithWordWrap(40),
+	)
+
 	var renderedFlavorText = lipgloss.Place(m.width, m.height,
 			lipgloss.Center, lipgloss.Center,
 			text.Render(title.Render("About:") + "\n" + bold2.Render("CodeCube") + " is a project i made in a few hours because i was bored\n and didn't really have anything else todo.\nMade with ❤️  by Max Campbell\n" + dull.Render("Press b to go back to the home page")),
@@ -220,7 +228,7 @@ func (m model) View() string {
 		case "newPaste":
 			return fmt.Sprintf(enter.Render("Paste your content below:") + "\n\n%s",m.textInput.View())
 		case "copied":
-			return fmt.Sprintf(bold2.Render("🚀 Copied to your clipboard!"))
+			return fmt.Sprintf(r.Render(m.pasteData))
 		case "getPaste":
 			return fmt.Sprintf(enter.Render("Enter paste ID:") + "\n\n%s",m.textInput.View())
 		case "loading":
