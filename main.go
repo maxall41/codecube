@@ -120,8 +120,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "q", "ctrl+c":
-			// Close DB Instance
-			globalDB.Close()
 			return m, tea.Quit
 		case "x", "X":
 			if (m.state == "") {
@@ -158,8 +156,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Update UI
 				m.savedId = id
 				m.state = "pasted"
-				// Close DB Instance
-				globalDB.Close()
 			} else if (m.state == "getPaste" && m.textInput.Value() != "") {
 				// Fetch updates and easily define your own syncing strategy
 				if err := globalDB.Sync(); err != nil {
@@ -177,8 +173,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					clip.WriteAll(string(result))
 					m.state = "copied"
 				}
-				// Close DB Instance
-				globalDB.Close()
 			}
 		}
 	}
