@@ -45,6 +45,13 @@ func main() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+	// Open a database (or create one if it doesn’t exist)
+	db, err := kv.OpenWithDefaults("code-cube-pastes")
+	if err != nil {
+		log.Fatal(err)
+	}
+	globalDB = db
+	// Other stuff
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	log.Printf("Starting SSH server on %s:%d", host, port)
@@ -59,12 +66,6 @@ func main() {
 	if err := s.Close(); err != nil {
 		log.Fatalln(err)
 	}
-	// Open a database (or create one if it doesn’t exist)
-	db, err := kv.OpenWithDefaults("code-cube-pastes")
-	if err != nil {
-		log.Fatal(err)
-	}
-	globalDB = db
 }
 
 // You can wire any Bubble Tea model up to the middleware with a function that
@@ -135,13 +136,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "a", "A":
 			if (m.state == "") {
 				m.state = "flavor"
+				return m,nil
 			}
-			return m,nil
 		case "b", "B":
 			if (m.state == "flavor") {
 				m.state = ""
+				return m,nil
 			}
-			return m,nil
 		case "enter":
 			if (m.state == "newPaste" && m.textInput.Value() != "") {
 				// Generate ID
