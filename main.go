@@ -228,7 +228,7 @@ func (m model) View() string {
 		case "newPaste":
 			return fmt.Sprintf(enter.Render("Paste your content below:") + "\n\n%s",m.textInput.View())
 		case "copied":
-			return fmt.Sprintf(r.Render(m.pasteData))
+			return fmt.Sprintf(r.Render("\n-----------------------------" + m.pasteData + "\n-----------------------------"))
 		case "getPaste":
 			return fmt.Sprintf(enter.Render("Enter paste ID:") + "\n\n%s",m.textInput.View())
 		case "loading":
