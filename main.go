@@ -26,7 +26,7 @@ import (
 )
 
 const host = "localhost"
-const port = 23234
+const port = 22
 
 var globalDB *kv.KV = nil
 
