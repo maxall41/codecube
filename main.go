@@ -28,7 +28,10 @@ import (
 const host = "localhost"
 const port = 23234
 
+var globalDB *kv.KV = nil
+
 type tickMsg time.Time
+
 
 func main() {
 	s, err := wish.NewServer(
@@ -56,6 +59,12 @@ func main() {
 	if err := s.Close(); err != nil {
 		log.Fatalln(err)
 	}
+	// Open a database (or create one if it doesn’t exist)
+	db, err := kv.OpenWithDefaults("code-cube-pastes")
+	if err != nil {
+		log.Fatal(err)
+	}
+	globalDB = db
 }
 
 // You can wire any Bubble Tea model up to the middleware with a function that
@@ -73,18 +82,12 @@ func teaHandler(s ssh.Session) (tea.Model, []tea.ProgramOption) {
 	ti.Focus()
 	ti.CharLimit = 100000 // 100,000 character limit
 	ti.Width = 20
-	// Open a database (or create one if it doesn’t exist)
-	db, err := kv.OpenWithDefaults("code-cube-pastes")
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	m := model{
 		term:   pty.Term,
 		width:  pty.Window.Width,
 		height: pty.Window.Height,
 		textInput: ti,
-		db: db,
 		progress: progress.NewModel(progress.WithDefaultGradient()),
 	}
 	return m, []tea.ProgramOption{tea.WithAltScreen()}
@@ -96,7 +99,6 @@ type model struct {
 	width  int
 	height int
 	textInput textinput.Model
-	db *kv.KV
 	savedId string
 	state string
 	progress progress.Model
@@ -118,7 +120,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case "q", "ctrl+c":
 			// Close DB Instance
-			m.db.Close()
+			globalDB.Close()
 			return m, tea.Quit
 		case "x", "X":
 			if (m.state == "") {
@@ -149,21 +151,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.state = "loading"
 				// Save some data
-				if err := m.db.Set([]byte(id), []byte(m.textInput.Value())); err != nil {
+				if err := globalDB.Set([]byte(id), []byte(m.textInput.Value())); err != nil {
 					log.Fatal(err)
 				}
 				// Update UI
 				m.savedId = id
 				m.state = "pasted"
 				// Close DB Instance
-				m.db.Close()
+				globalDB.Close()
 			} else if (m.state == "getPaste" && m.textInput.Value() != "") {
 				// Fetch updates and easily define your own syncing strategy
-				if err := m.db.Sync(); err != nil {
+				if err := globalDB.Sync(); err != nil {
 					log.Fatal(err)
 				}
 				m.state = "loading"
-				result, err := m.db.Get([]byte(m.textInput.Value()))
+				result, err := globalDB.Get([]byte(m.textInput.Value()))
 				if (err != nil) {
 					if (err.Error() == "Key not found") {
 						m.state = "keyNotFound"
@@ -175,7 +177,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.state = "copied"
 				}
 				// Close DB Instance
-				m.db.Close()
+				globalDB.Close()
 			}
 		}
 	}
